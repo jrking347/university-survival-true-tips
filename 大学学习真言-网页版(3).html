@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>大学学习真言 终极无敌版</title>
+<style>
+  :root{
+    --green:#00ff00;
+    --red:#ff2b2b;
+    --yellow:#ffff00;
+    --gray:#b9b9b9;
+  }
+  *{box-sizing:border-box;}
+
+  html,body{
+    height:100%;margin:0;padding:0;
+    background:#000;
+  }
+  body{
+    font-family:"Cascadia Mono","Consolas","Sarasa Mono SC","Microsoft YaHei",monospace;
+    overflow:hidden;
+    overscroll-behavior:none;
+    touch-action:manipulation;          /* 手机上禁掉双击缩放/下拉刷新 */
+    user-select:none;
+    -webkit-user-select:none;
+    -webkit-text-size-adjust:100%;
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  /* 舞台：手机竖屏、横屏、电脑都能自适应居中 */
+  #stage{
+    position:fixed;inset:0;
+    display:grid;place-items:center;   /* grid 保证内容宽度被容器约束，中文长句才会换行 */
+    text-align:center;
+    padding:
+      calc(env(safe-area-inset-top)  + 5vh)
+      calc(env(safe-area-inset-right) + 5vw)
+      calc(env(safe-area-inset-bottom) + 7vh)
+      calc(env(safe-area-inset-left)  + 5vw);
+  }
+  #content{
+    width:100%;max-width:100%;min-width:0;
+    font-size:clamp(17px, 4.4vmin, 34px);
+    line-height:1.55;
+    white-space:pre-wrap;
+    word-break:break-word;
+    letter-spacing:.02em;
+  }
+  /* 红色大字段（原 setBigFont + 红色） */
+  #content .big{font-size:clamp(26px, 8.2vmin, 68px);font-weight:700;}
+  /* 彩蛋第二句：比大字再大一号（字号按 9 个字一行安全换算，保证不断词） */
+  #content .huge{font-size:clamp(26px, 9.6vmin, 92px);font-weight:800;line-height:1.22;}
+  #content .eggline1{margin-bottom:3vh;}
+
+  .ch{opacity:0;}
+  .ch.on{opacity:1;}
+
+  /* 底部提示 */
+  #hint{
+    position:fixed;left:0;right:0;
+    bottom:calc(env(safe-area-inset-bottom) + 3.5vh);
+    text-align:center;
+    font-size:clamp(13px, 2.6vmin, 22px);
+    color:var(--gray);
+    visibility:hidden;
+    pointer-events:none;
+    animation:breathe 1.6s ease-in-out infinite;
+  }
+  @keyframes breathe{0%,100%{opacity:.45}50%{opacity:1}}
+
+  /* 选择按钮 */
+  .btns{
+    margin-top:4vh;
+    display:flex;gap:4vw;justify-content:center;align-items:center;
+  }
+  .btn{
+    font:inherit;font-size:clamp(18px, 5vmin, 30px);
+    background:#000;color:currentColor;
+    border:2px solid currentColor;border-radius:12px;
+    padding:.4em 1.1em;
+    min-width:22vw;min-height:12vh;
+    display:flex;flex-direction:column;justify-content:center;align-items:center;
+    cursor:pointer;
+    touch-action:manipulation;
+    transition:background .15s,transform .1s;
+  }
+  .btn small{display:block;font-size:.5em;opacity:.75;margin-top:.35em;}
+  .btn:active{background:#1c1c1c;transform:scale(.96);}
+
+  /* 开场遮罩：点一下屏幕才开始（同时解锁手机音频） */
+  #start{
+    position:fixed;inset:0;z-index:10;
+    background:#000;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;
+    padding:6vw;
+    transition:opacity .25s;
+  }
+  #start.hide{opacity:0;pointer-events:none;}
+  #start .play{
+    width:clamp(76px,22vmin,140px);height:clamp(76px,22vmin,140px);
+    border:3px solid var(--green);border-radius:50%;
+    color:var(--green);
+    display:flex;align-items:center;justify-content:center;
+    font-size:clamp(30px,9vmin,56px);
+    margin-bottom:5vh;
+    animation:pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(0,255,0,.35);transform:scale(1);}
+    50%{box-shadow:0 0 0 16px rgba(0,255,0,0);transform:scale(1.05);}
+  }
+  #start .t1{color:var(--green);font-size:clamp(20px,6vmin,40px);font-weight:700;letter-spacing:.08em;max-width:100%;overflow-wrap:anywhere;}
+  #start .t2{color:var(--gray);font-size:clamp(13px,3.2vmin,22px);margin-top:2.5vh;max-width:100%;overflow-wrap:anywhere;}
+  #start .t3{color:#6f6f6f;font-size:clamp(11px,2.6vmin,17px);margin-top:1.2vh;max-width:100%;overflow-wrap:anywhere;line-height:1.6;}
+
+  /* 小屏（手机）：按钮竖排、拉满宽度，纯色块更好点 */
+  @media (max-width:560px){
+    .btns{flex-direction:row;gap:5vw;width:100%;}
+    .btn{flex:1 1 0;min-width:0;min-height:16vh;font-size:clamp(20px,7vmin,32px);}
+    #content{font-size:clamp(16px, 5.2vmin, 30px);}
+  }
+  /* 电脑大屏：按宽度换算字号，第二句可以放得更大 */
+  @media (min-width:900px){
+    #content .huge{font-size:clamp(40px, 9.6vw, 150px);}
+  }
+  /* 横屏矮屏（放最后，优先级最高） */
+  @media (max-height:500px) and (orientation:landscape){
+    #content{font-size:clamp(15px,3.6vmin,26px);}
+    #content .big{font-size:clamp(22px,6.6vmin,44px);}
+    #content .huge{font-size:clamp(24px,9vmin,60px);}
+    .btn{min-height:0;padding:.35em 1em;font-size:clamp(16px,4.4vmin,24px);}
+    .btns{margin-top:2vh;}
+    #start .play{width:clamp(56px,16vmin,90px);height:clamp(56px,16vmin,90px);margin-bottom:2.5vh;}
+  }
+</style>
+</head>
+<body>
+
+<div id="stage"><div id="content"></div></div>
+<div id="hint"></div>
+
+<div id="start">
+  <div class="play">&#9654;</div>
+  <div class="t1">点击屏幕开始</div>
+  <div class="t2">大学学习真言 · 终极无敌版</div>
+  <div class="t3">手机 / 平板 / 电脑 均可直接运行（电脑也可按任意键）</div>
+</div>
+
+<script>
+"use strict";
+
+/* ==================== 与 C++ 版一致的常量 ==================== */
+var C = {
+  green : "#00ff00",   // FOREGROUND_GREEN | INTENSITY
+  red   : "#ff2b2b",   // FOREGROUND_RED   | INTENSITY
+  yellow: "#ffff00",   // RED|GREEN|INTENSITY
+  normal: "#c8c8c8"    // oldColor (默认控制台灰白)
+};
+
+var NORMAL_LINES = [
+  "那就是大不了自己学",
+  "老师不会对你负责，十多年前包浆ppt美美念",
+  "上课划水真是爽",
+  "学生听课如坐牢",
+  "ppt还挺清晰",
+  "念完置身云雾里",
+  "下课翻开练习册",
+  "每个题都不会做",
+  "苦哈哈的自己啃",
+  "弄懂概念来再做题",
+  "全靠自己完学业",
+  "teacher是谁真不熟"
+];
+
+var RED_LINES = [
+  "学校是个马戏团",
+  "老师演给学生看",
+  "演得不好不退换",
+  "荒废学业臀坐烂",
+  "老天我该怎么办",
+  "扔掉课堂大粪弹",
+  "教科书要自己看",
+  "这可不是啥反叛",
+  "负责人生就这么办",
+  "流自己的汗",
+  "吃自己的饭",
+  "自己的事情自己办",
+  "靠天靠人靠老师",
+  "即不算好汉",
+  "而且是蠢蛋"
+];
+
+/* ==================== 彩蛋文字 ==================== */
+var EGG_LINE1 = "依靠你自己的才智以及可靠的兄弟们";        // 黄色大字
+var EGG_LINE2 = "在大学的孤独汪洋中存活下来！！！";          // 红色、再放大
+var EGG_LINE2_BREAK = 9;   // 在第 9 个字后换行：在大学的孤独汪洋中 / 存活下来！！！
+
+var content = document.getElementById("content");
+var hint    = document.getElementById("hint");
+var startEl = document.getElementById("start");
+
+var currentColor = C.green;
+function setColor(c){ currentColor = c; }
+
+function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+
+/* ==================== 声音（对应 Beep） ==================== */
+var actx = null;
+function unlockAudio(){
+  try{
+    if(!actx){
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return;
+      actx = new AC();
+    }
+    if(actx.state === "suspended") actx.resume();
+  }catch(e){ /* 没有声音也照样能跑 */ }
+}
+
+function beep(freq, durMs, vol){
+  if(!actx) return;
+  try{
+    var t = actx.currentTime;
+    var osc = actx.createOscillator();
+    var gain = actx.createGain();
+    var v = (vol === undefined) ? 0.05 : vol;
+    osc.type = "square";
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(v, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + durMs / 1000);
+    osc.connect(gain); gain.connect(actx.destination);
+    osc.start(t); osc.stop(t + durMs / 1000 + 0.02);
+  }catch(e){}
+}
+function beepAsync(freq, durMs, vol){
+  beep(freq, durMs, vol);
+  return sleep(durMs);
+}
+
+/* ==================== 屏幕工具 ==================== */
+function clearScreen(){ content.innerHTML = ""; }
+
+function showHint(text){
+  hint.textContent = text || (isTouch() ? "[ 点击屏幕继续 ]" : "[ 点击屏幕 / 按任意键继续 ]");
+  hint.style.visibility = "visible";
+}
+function hideHint(){ hint.style.visibility = "hidden"; }
+
+function isTouch(){
+  return ("ontouchstart" in window) || (navigator.maxTouchPoints > 0);
+}
+
+/* ==================== 打字机居中输出 ==================== */
+async function typewriterCentered(text, delayMs, withBeep, sizeClass){
+  clearScreen();
+
+  // 颜色记录在每一行的容器上：之后改颜色不会重绘已经显示出来的文字（对应控制台缓冲区行为）
+  var wrap = document.createElement("div");
+  wrap.style.color = currentColor;
+  if(sizeClass) wrap.className = sizeClass;
+  content.appendChild(wrap);
+
+  var spans = [];
+  var frag = document.createDocumentFragment();
+  var chars = Array.from(text);          // 按 Unicode 字符拆分，中文不会破字
+  for(var i = 0; i < chars.length; i++){
+    var s = document.createElement("span");
+    s.className = "ch";
+    s.textContent = chars[i];
+    frag.appendChild(s);
+    spans.push(s);
+  }
+  wrap.appendChild(frag);                // 先占位，保证整体始终居中，不会左右抖动
+
+  var d = (delayMs === undefined) ? 30 : delayMs;
+  for(var k = 0; k < spans.length; k++){
+    spans[k].classList.add("on");
+    if(withBeep && chars[k] !== " " && chars[k] !== "\n"){
+      beep(700 + Math.floor(Math.random() * 500), 12, 0.035);  // Beep(700+rand()%500, 10)
+    }
+    await sleep(d);
+  }
+}
+
+/* ==================== 等待继续：点屏幕 或 按任意键 ==================== */
+function waitContinue(){
+  return new Promise(function(resolve){
+    var started = performance.now();
+    showHint();
+
+    function done(){
+      window.removeEventListener("keydown", onKey, true);
+      window.removeEventListener("pointerdown", onMouse, true);
+      hideHint();
+      resolve();
+    }
+    function onKey(e){
+      if(e.repeat) return;
+      if(performance.now() - started < 120) return;
+      e.preventDefault();
+      done();
+    }
+    function onMouse(e){
+      if(e.button !== undefined && e.button !== 0) return;   // 只认左键 / 触摸
+      if(performance.now() - started < 250) return;
+      done();
+    }
+    window.addEventListener("keydown", onKey, true);
+    window.addEventListener("pointerdown", onMouse, true);
+  });
+}
+
+/* ==================== 开场：点一下屏幕才开始 ==================== */
+function waitStart(){
+  return new Promise(function(resolve){
+    function go(){
+      window.removeEventListener("pointerdown", go, true);
+      window.removeEventListener("keydown", go, true);
+      unlockAudio();                       // 手机浏览器要求先有用户操作才允许出声
+      startEl.classList.add("hide");
+      setTimeout(function(){
+        startEl.style.display = "none";
+        resolve();
+      }, 260);
+    }
+    window.addEventListener("pointerdown", go, true);
+    window.addEventListener("keydown", go, true);
+  });
+}
+
+/* ==================== 进度条 ==================== */
+async function progressBar(durationMs, label){
+  clearScreen();
+  var width = 30;
+  var line = document.createElement("div");
+  line.style.color = currentColor;
+  line.style.whiteSpace = "pre";
+  line.style.fontSize = "clamp(12px, 3.4vmin, 26px)";
+  content.appendChild(line);
+
+  for(var i = 0; i <= width; i++){
+    var bar = "";
+    for(var j = 0; j < width; j++){
+      bar += (j < i) ? "=" : ((j === i) ? ">" : " ");
+    }
+    line.textContent = label + " [" + bar + "] " + Math.floor(i * 100 / width) + "%";
+    await sleep(durationMs / width);
+  }
+  line.textContent = label + " [" + "=".repeat(width) + "] 100%";
+}
+
+/* ==================== 读取 y / n（手机上点按钮即可） ==================== */
+function askYesNo(){
+  return new Promise(function(resolve){
+    clearScreen();
+    var wrap = document.createElement("div");
+    wrap.style.color = currentColor;
+    content.appendChild(wrap);
+
+    var q = document.createElement("div");
+    q.textContent = "你想知道大学学习真言吗？";
+    wrap.appendChild(q);
+
+    var sub = document.createElement("div");
+    sub.style.fontSize = "0.6em";
+    sub.style.opacity = "0.7";
+    sub.style.marginTop = "1.2vh";
+    sub.textContent = "（点击下面的按钮，或按键盘 y / n）";
+    wrap.appendChild(sub);
+
+    var box = document.createElement("div");
+    box.className = "btns";
+
+    var by = document.createElement("button");
+    by.className = "btn";
+    by.innerHTML = "y<small>想知道</small>";
+    var bn = document.createElement("button");
+    bn.className = "btn";
+    bn.innerHTML = "n<small>不想知道</small>";
+
+    box.appendChild(by); box.appendChild(bn);
+    wrap.appendChild(box);
+
+    function finish(v){
+      window.removeEventListener("keydown", onKey, true);
+      by.removeEventListener("click", onY);
+      bn.removeEventListener("click", onN);
+      resolve(v);
+    }
+    function onY(){ finish("y"); }
+    function onN(){ finish("n"); }
+    function onKey(e){
+      var ch = e.key;
+      if(ch === "y" || ch === "Y"){ e.preventDefault(); finish("y"); }
+      else if(ch === "n" || ch === "N"){ e.preventDefault(); finish("n"); }
+    }
+    by.addEventListener("click", onY);
+    bn.addEventListener("click", onN);
+    window.addEventListener("keydown", onKey, true);
+  });
+}
+
+/* ==================== 彩蛋画面 ==================== */
+function renderEgg(){
+  clearScreen();
+  var egg = document.createElement("div");
+
+  var line1 = document.createElement("div");
+  line1.className = "big eggline1";
+  line1.style.color = C.yellow;          // 第一句：黄色大字
+  line1.textContent = EGG_LINE1;
+  egg.appendChild(line1);
+
+  var line2 = document.createElement("div");
+  line2.className = "huge";
+  line2.style.color = C.red;             // 第二句：红色、再放大
+  line2.appendChild(document.createTextNode(EGG_LINE2.slice(0, EGG_LINE2_BREAK)));
+  line2.appendChild(document.createElement("br"));
+  line2.appendChild(document.createTextNode(EGG_LINE2.slice(EGG_LINE2_BREAK)));
+  egg.appendChild(line2);
+
+  content.appendChild(egg);
+}
+
+/* ==================== 真言内容 ==================== */
+async function showTruth(){
+  // ---- 普通句子：绿色，25ms，无提示音 ----
+  setColor(C.green);
+  for(var i = 0; i < NORMAL_LINES.length; i++){
+    await typewriterCentered(NORMAL_LINES[i], 25, false, null);
+    await waitContinue();
+  }
+
+  // ---- 红色大字：35ms，每字带提示音 ----
+  setColor(C.red);
+  for(var k = 0; k < RED_LINES.length; k++){
+    await typewriterCentered(RED_LINES[k], 35, true, "big");
+    await waitContinue();
+  }
+
+  // ---- 彩蛋：第一句黄色大字，第二句红色再放大 ----
+  renderEgg();
+
+  await beepAsync(523, 200, 0.07);
+  await beepAsync(659, 200, 0.07);
+  await beepAsync(784, 400, 0.07);
+
+  await waitContinue();
+}
+
+/* ==================== 主流程 ==================== */
+async function main(){
+  setColor(C.green);
+
+  await waitStart();                     // 点击屏幕才开始
+
+  await progressBar(800, "正在加载大学学习真言");
+  await sleep(300);
+
+  var secondChance = false;
+
+  while(true){
+    setColor(C.green);
+    var choice = await askYesNo();
+
+    if(choice === "y"){
+      await showTruth();
+      break;
+    }else{
+      if(!secondChance){
+        setColor(C.yellow);
+        await typewriterCentered("自求多福，希望你能摸索出一条康庄大道", 25, false, null);
+        await waitContinue();
+
+        await typewriterCentered("再给你个机会咯", 25, false, null);
+        await waitContinue();
+
+        secondChance = true;
+        continue;
+      }else{
+        setColor(C.red);
+        await typewriterCentered("冥顽不化！！自求多福吧", 50, true, null);
+        await waitContinue();
+        break;
+      }
+    }
+  }
+
+  // 对应 restoreConsole()：恢复默认显示
+  setColor(C.normal);
+  await showEnd();                       // 结束后：点屏幕再看一次
+}
+
+function showEnd(){
+  return new Promise(function(resolve){
+    showHint("—— 演示结束 · 点击屏幕重新播放 ——");
+    var started = performance.now();
+    function go(){
+      if(performance.now() - started < 800) return;
+      window.removeEventListener("pointerdown", go, true);
+      window.removeEventListener("keydown", go, true);
+      location.reload();
+    }
+    window.addEventListener("pointerdown", go, true);
+    window.addEventListener("keydown", go, true);
+  });
+}
+
+main().catch(function(err){
+  content.textContent = "运行出错：" + err;
+  content.style.color = "#ff5555";
+});
+</script>
+</body>
+</html>
